@@ -478,15 +478,26 @@ function buildHorarioDisplay(start, end) {
   if (end === null) return formatMin(start);
   return `${formatMin(start)} - ${formatMin(end)}`;
 }
-const HORARIO_MAP = {
-  '06:20 - 09:40': '06:00 - 07:40 (EXTRA)<br>08:00 - 09:40',
-  '09:40 - 11:20': '10:00 - 11:30',
-  '13:50 - 17:30': '13:50 - 15:30<br>15:50 - 17:30',
-};
+const SLOTS_PADRAO = [
+  { start: 6*60,      end: 7*60+40,  label: '06:00 - 07:40 (EXTRA)' },
+  { start: 8*60,      end: 9*60+40,  label: '08:00 - 09:40' },
+  { start: 10*60,     end: 11*60+40, label: '10:00 - 11:40' },
+  { start: 13*60+50,  end: 15*60+30, label: '13:50 - 15:30' },
+  { start: 15*60+50,  end: 17*60+30, label: '15:50 - 17:30' },
+  { start: 19*60,     end: 20*60+40, label: '19:00 - 20:40 (EXTRA)' },
+];
 function mapHorarioLabel(raw) {
   if (!raw) return 'Horário não informado';
-  const normalized = raw.replace(/–/g, '-').replace(/\s*-\s*/g, ' - ').trim();
-  return HORARIO_MAP[normalized] || raw;
+  const m = raw.replace(/–/g, '-').match(/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/);
+  if (!m) return raw;
+  const csvStart = parseTime(m[1]);
+  const csvEnd   = parseTime(m[2]);
+  const tolerancia = 30;
+  const cobertos = SLOTS_PADRAO.filter(s =>
+    csvStart <= s.start + tolerancia && csvEnd >= s.end - tolerancia
+  );
+  if (cobertos.length === 0) return raw;
+  return cobertos.map(s => s.label).join('<br>');
 }
 
 // ===================== CONFLICT & OVERTIME =====================
