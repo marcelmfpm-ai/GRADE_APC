@@ -1013,13 +1013,16 @@ const CSV_URLS = [
 ];
 
 function parseCsvUrl(url) {
-  return new Promise((resolve, reject) => {
-    Papa.parse(url, {
-      download: true, header: true, delimiter: ';', skipEmptyLines: true,
-      complete: r => resolve(r.data || []),
-      error: err => reject(err)
+  return fetch(url)
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+    .then(text => {
+      const result = Papa.parse(text.trim(), {
+        header: true, skipEmptyLines: true,
+        delimitersToGuess: [';', ',', '\t']
+      });
+      console.log('[CSV]', url, '→', result.data.length, 'linhas', '| cols:', Object.keys(result.data[0]||{}).join(', '));
+      return result.data || [];
     });
-  });
 }
 
 function rowsToText(rows) {
