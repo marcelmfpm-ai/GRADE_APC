@@ -391,6 +391,7 @@ function processCSV(text) {
     return {
       ...ev,
       horarioDisplay: buildHorarioDisplay(start, end),
+      horarioRaw: ev.horarios[0] || '',
       horarioStart: start,
       horarioEnd: end,
       durationMin: (start !== null && end !== null) ? end - start : 0,
@@ -476,6 +477,16 @@ function buildHorarioDisplay(start, end) {
   if (start === null) return 'Horário não informado';
   if (end === null) return formatMin(start);
   return `${formatMin(start)} - ${formatMin(end)}`;
+}
+const HORARIO_MAP = {
+  '06:20 - 09:40': '06:00 - 07:40 (EXTRA)<br>08:00 - 09:40',
+  '09:40 - 11:20': '10:00 - 11:30',
+  '13:50 - 17:50': '13:50 - 15:30<br>15:50 - 17:30',
+};
+function mapHorarioLabel(raw) {
+  if (!raw) return 'Horário não informado';
+  const normalized = raw.replace(/–/g, '-').replace(/\s+/g, ' ').trim();
+  return HORARIO_MAP[normalized] || raw;
 }
 
 // ===================== CONFLICT & OVERTIME =====================
@@ -696,7 +707,7 @@ function renderCards() {
         <div class="aula-code">${ev.aula}</div>
         <div class="aula-name">${aulaName}</div>
         <div class="sala">🏫 Turma: <strong>${ev.sala}</strong></div>
-        <div class="horario">🕐 ${ev.horarioDisplay}</div>
+        <div class="horario">🕐 ${mapHorarioLabel(ev.horarioRaw)}</div>
         ${pastTag}
         <div class="data-badge">📅 ${ev.data}</div>
       </div>
@@ -785,7 +796,7 @@ function exportCard(evIdx) {
       <div style="font-size:18px;font-weight:800;color:#fbbf24;">${ev.aula}</div>
       <div style="font-size:11px;color:#93c5fd;margin-top:2px;">${AULA_NAMES[ev.aula]||ev.aula}</div>
       <div style="font-size:13px;color:#e2e8f0;font-weight:600;margin-top:5px;">🏫 Turma: ${ev.sala}</div>
-      <div style="font-size:13px;color:#bfdbfe;margin-top:3px;font-weight:600;">🕐 ${ev.horarioDisplay}</div>
+      <div style="font-size:13px;color:#bfdbfe;margin-top:3px;font-weight:600;">🕐 ${mapHorarioLabel(ev.horarioRaw)}</div>
       <div style="font-size:12px;color:#bfdbfe;margin-top:2px;">📅 ${ev.data}</div>
       ${ev._hasConflict?'<div style="margin-top:8px;padding:5px 10px;background:rgba(239,68,68,0.2);border:1px solid rgba(239,68,68,0.5);border-radius:5px;font-size:11px;color:#fca5a5;font-weight:700;">⚠️ Conflito de horário detectado</div>':''}
       ${ev._hasOvertime?'<div style="margin-top:6px;padding:5px 10px;background:rgba(245,158,11,0.2);border:1px solid rgba(245,158,11,0.5);border-radius:5px;font-size:11px;color:#fde68a;font-weight:700;">⏱️ Pessoa(s) acima de 8h/dia</div>':''}
