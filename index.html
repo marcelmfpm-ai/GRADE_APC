@@ -377,8 +377,9 @@ function processCSV(text) {
   const eventMap = {};
   rows.forEach(r => {
     if (!r.Data || !r.Aula || !r.Nome) return;
-    const hKey = (r[colHorario] || '').trim();
-    const key = `${r.Data}||${r.Aula}||${hKey}||${(r[colSala]||'').trim()}`;
+    const hKey = (r[colHorario] || '').trim().replace(/\s*-\s*/g, '-');
+    const salaKey = getTurmaBase((r[colSala]||'').trim());
+    const key = `${r.Data}||${r.Aula}||${hKey}||${salaKey}`;
 
     if (!eventMap[key]) {
       eventMap[key] = { data: r.Data.trim(), aula: r.Aula.trim(), sala: (r[colSala]||'').trim(), horarios: [], equipe: [] };
