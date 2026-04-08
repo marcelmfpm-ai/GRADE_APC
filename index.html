@@ -377,9 +377,9 @@ function processCSV(text) {
   const eventMap = {};
   rows.forEach(r => {
     if (!r.Data || !r.Aula || !r.Nome) return;
-    const hKey = (r[colHorario] || '').trim().replace(/\s*-\s*/g, '-');
-    const salaKey = getTurmaBase((r[colSala]||'').trim());
-    const key = `${r.Data}||${r.Aula}||${hKey}||${salaKey}`;
+    const hKey = getSlotKey((r[colHorario] || '').trim());
+    const salaKey = getTurmaKey((r[colSala]||'').trim());
+    const key = `${r.Data}||${hKey}||${salaKey}`;
 
     if (!eventMap[key]) {
       eventMap[key] = { data: r.Data.trim(), aula: r.Aula.trim(), sala: (r[colSala]||'').trim(), horarios: [], equipe: [] };
@@ -563,6 +563,21 @@ function computeOvertime() {
 // ===================== FILTERS =====================
 function getTurmaBase(sala) {
   return sala ? sala.split(' - ')[0].trim() : '';
+}
+function getTurmaKey(sala) {
+  const base = getTurmaBase(sala);
+  // Normaliza "G (07)" e "G(07)" → "G(07)"
+  const m = base.match(/^([A-Za-z]+)\s*\(0*(\d+)\)/);
+  return m ? `${m[1].toUpperCase()}(${parseInt(m[2])})` : base.toUpperCase();
+}
+function getSlotKey(raw) {
+  if (!raw) return '';
+  const m = raw.replace(/–/g, '-').match(/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/);
+  if (!m) return raw.trim().replace(/\s*-\s*/g, '-');
+  const s = parseTime(m[1]), e = parseTime(m[2]);
+  const tol = 40;
+  const slots = SLOTS_PADRAO.filter(sl => s <= sl.start + tol && e >= sl.end - tol);
+  return slots.length ? slots.map(sl => sl.start).join('+') : `${s}-${e}`;
 }
 function buildFilters() {
   const datas = [...new Set(allEvents.map(e => e.data))].sort((a,b) => parseDate(a)-parseDate(b));
