@@ -102,12 +102,12 @@
 
   .card-header { padding: 14px 16px; background: linear-gradient(135deg, #1e3a5f 0%, #2d5a8e 100%); border-bottom: 2px solid var(--accent-light); display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
   .card-header-left { flex: 1; min-width: 0; }
-  .card-header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+  .card-header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; text-align: right; }
   .card-header .aula-code { font-size: 1.15rem; font-weight: 800; color: #fbbf24; letter-spacing: 0.05em; }
   .card-header .aula-name { font-size: 0.73rem; color: #93c5fd; margin-top: 2px; }
-  .card-header .data-badge { background: rgba(220,38,38,0.18); border: 1px solid rgba(220,38,38,0.6); border-radius: 6px; padding: 3px 9px; font-size: 0.9rem; color: #ff6b6b; font-weight: 800; }
-  .card-header .sala { font-size: 1rem; color: #ff6b6b; font-weight: 700; text-align: right; }
-  .card-header .horario { font-size: 1rem; color: #ff6b6b; font-weight: 700; text-align: right; line-height: 1.6; }
+  .card-header .data-badge { background: rgba(220,38,38,0.18); border: 1px solid rgba(220,38,38,0.6); border-radius: 6px; padding: 3px 9px; font-size: 0.9rem; color: #ff6b6b; font-weight: 800; white-space: nowrap; }
+  .card-header .sala { font-size: 1rem; color: #ff6b6b; font-weight: 700; }
+  .card-header .horario { font-size: 1rem; color: #ff6b6b; font-weight: 700; white-space: nowrap; }
   .card-header .past-tag { display: inline-block; margin-top: 4px; padding: 2px 8px; background: rgba(255,255,255,0.15); border-radius: 4px; font-size: 0.68rem; color: #cbd5e1; font-weight: 700; }
 
   .card-body { padding: 12px 16px; }
@@ -499,7 +499,12 @@ function mapHorarioLabel(raw) {
     csvStart <= s.start + tolerancia && csvEnd >= s.end - tolerancia
   );
   if (cobertos.length === 0) return raw;
-  return cobertos.map(s => s.label).join('<br>🕐 ');
+  return cobertos.map(s => s.label).join('<br>');
+}
+function renderHorarioLines(raw) {
+  const label = mapHorarioLabel(raw);
+  if (!label || label === 'Horário não informado') return `<div class="horario">🕐 Horário não informado</div>`;
+  return label.split('<br>').map(l => `<div class="horario">🕐 ${l.trim()}</div>`).join('');
 }
 
 // ===================== CONFLICT & OVERTIME =====================
@@ -725,7 +730,7 @@ function renderCards() {
         <div class="card-header-right">
           <div class="data-badge">📅 ${ev.data}</div>
           <div class="sala">🏫 Turma: <strong>${ev.sala}</strong></div>
-          <div class="horario">🕐 ${mapHorarioLabel(ev.horarioRaw)}</div>
+          ${renderHorarioLines(ev.horarioRaw)}
         </div>
       </div>
       <div class="card-body">${alertHtml}${pessoasHtml}</div>
