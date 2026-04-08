@@ -1006,45 +1006,60 @@ function processPastedCSV(){
   processCSV(text);
 }
 
-// ===== AUTOLOAD (carrega sozinho ao abrir) =====
-function getCsvFromQuery() {
-  const p = new URLSearchParams(window.location.search);
-  return p.get('csv'); // exemplo: index.html?csv=escalas.csv  OU ?csv=https://raw....
+// ===== AUTOLOAD (carrega duas planilhas e mescla) =====
+const CSV_URLS = [
+  'https://marcelmfpm-ai.github.io/painel-professores-2/escalas.csv',
+  'https://robertojunior27061978.github.io/HORAS-AUXILIARES/escalas.csv'
+];
+
+function parseCsvUrl(url) {
+  return new Promise((resolve, reject) => {
+    Papa.parse(url, {
+      download: true, header: true, delimiter: ';', skipEmptyLines: true,
+      complete: r => resolve(r.data || []),
+      error: err => reject(err)
+    });
+  });
+}
+
+function rowsToText(rows) {
+  if (!rows.length) return '';
+  const cols = Object.keys(rows[0]);
+  const lines = [cols.map(c => String(c).trim()).join(';')];
+  rows.forEach(row => {
+    lines.push(cols.map(c => String(row[c] ?? '').replaceAll('\n', ' ').trim()).join(';'));
+  });
+  return lines.join('\n');
 }
 
 function autoLoadCSV() {
-  const url = getCsvFromQuery() || 'https://marcelmfpm-ai.github.io/painel-professores-2/escalas.csv';
-  document.getElementById('loadedFileLabel').textContent = '🔄 Carregando automaticamente: ' + url;
+  document.getElementById('loadedFileLabel').textContent = '🔄 Carregando planilhas...';
 
-  Papa.parse(url, {
-    download: true,
-    header: true,
-    delimiter: ';',
-    skipEmptyLines: true,
-    complete: function(results) {
-      if (!results || !results.data || results.data.length === 0) {
-        alert('CSV carregou, mas veio vazio. Verifique o arquivo: ' + url);
-        return;
+  Promise.allSettled(CSV_URLS.map(parseCsvUrl)).then(results => {
+    let allRows = [];
+    let erros = [];
+
+    results.forEach((r, i) => {
+      if (r.status === 'fulfilled' && r.value.length > 0) {
+        allRows = allRows.concat(r.value);
+      } else {
+        erros.push(CSV_URLS[i]);
       }
+    });
 
-    const cols = Object.keys(results.data[0] || {});
-const lines = [cols.map(c => String(c).trim()).join(';')];
-
-
-results.data.forEach(row => {
-  const line = cols
-    .map(c => String(row[c] ?? '').replaceAll('\n', ' ').trim())
-    .join(';');
-  lines.push(line);
-});
-
-processCSV(lines.join('\n'));
-
-    },
-    error: function(err) {
-      console.error(err);
-      alert('Falha ao carregar automaticamente o CSV: ' + url + '\n\nDica: no GitHub Pages use "escalas.csv" na mesma pasta, ou um link RAW.');
+    if (allRows.length === 0) {
+      alert('Nenhuma planilha carregou com sucesso.\n\n' + erros.join('\n'));
+      return;
     }
+
+    if (erros.length > 0) {
+      console.warn('Planilha(s) não carregaram:', erros);
+    }
+
+    document.getElementById('loadedFileLabel').textContent =
+      `✅ ${allRows.length} registros de ${results.filter(r => r.status === 'fulfilled').length} planilha(s)`;
+
+    processCSV(rowsToText(allRows));
   });
 }
 
