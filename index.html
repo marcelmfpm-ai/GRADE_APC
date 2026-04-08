@@ -560,10 +560,13 @@ function computeOvertime() {
 }
 
 // ===================== FILTERS =====================
+function getTurmaBase(sala) {
+  return sala ? sala.split(' - ')[0].trim() : '';
+}
 function buildFilters() {
   const datas = [...new Set(allEvents.map(e => e.data))].sort((a,b) => parseDate(a)-parseDate(b));
   const aulas = [...new Set(allEvents.map(e => e.aula))].sort();
-  const salas = [...new Set(allEvents.map(e => e.sala))].sort();
+  const salas = [...new Set(allEvents.map(e => getTurmaBase(e.sala)))].sort();
   fillSelect('filtData', datas);
   fillSelect('filtAula', aulas);
   fillSelect('filtSala', salas);
@@ -595,7 +598,7 @@ function applyFilters() {
     if (ev.isPast && !showPast && !hasActiveFilter) return false;
     if (fData && ev.data !== fData) return false;
     if (fAula && ev.aula !== fAula) return false;
-    if (fSala && ev.sala !== fSala) return false;
+    if (fSala && getTurmaBase(ev.sala) !== fSala) return false;
     if (fNome && !ev.equipe.some(m => m.nome.toLowerCase().includes(fNome))) return false;
     return true;
   });
