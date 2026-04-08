@@ -100,12 +100,14 @@
   .aula-card.has-conflict { border-color: #fca5a5; box-shadow: 0 0 0 2px rgba(239,68,68,0.15); }
   .aula-card.has-overtime { border-color: #fcd34d; }
 
-  .card-header { padding: 14px 16px; background: linear-gradient(135deg, #1e3a5f 0%, #2d5a8e 100%); border-bottom: 2px solid var(--accent-light); position: relative; }
+  .card-header { padding: 14px 16px; background: linear-gradient(135deg, #1e3a5f 0%, #2d5a8e 100%); border-bottom: 2px solid var(--accent-light); display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .card-header-left { flex: 1; min-width: 0; }
+  .card-header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
   .card-header .aula-code { font-size: 1.15rem; font-weight: 800; color: #fbbf24; letter-spacing: 0.05em; }
   .card-header .aula-name { font-size: 0.73rem; color: #93c5fd; margin-top: 2px; }
-  .card-header .sala { font-size: 0.85rem; color: #e2e8f0; font-weight: 600; margin-top: 5px; }
-  .card-header .horario { font-size: 1rem; color: #bfdbfe; margin-top: 3px; font-weight: 700; }
-  .card-header .data-badge { position: absolute; top: 12px; right: 12px; background: rgba(220,38,38,0.18); border: 1px solid rgba(220,38,38,0.6); border-radius: 6px; padding: 3px 9px; font-size: 0.85rem; color: #ff6b6b; font-weight: 800; }
+  .card-header .data-badge { background: rgba(220,38,38,0.18); border: 1px solid rgba(220,38,38,0.6); border-radius: 6px; padding: 3px 9px; font-size: 0.9rem; color: #ff6b6b; font-weight: 800; }
+  .card-header .sala { font-size: 1rem; color: #ff6b6b; font-weight: 700; text-align: right; }
+  .card-header .horario { font-size: 1rem; color: #ff6b6b; font-weight: 700; text-align: right; line-height: 1.6; }
   .card-header .past-tag { display: inline-block; margin-top: 4px; padding: 2px 8px; background: rgba(255,255,255,0.15); border-radius: 4px; font-size: 0.68rem; color: #cbd5e1; font-weight: 700; }
 
   .card-body { padding: 12px 16px; }
@@ -715,12 +717,16 @@ function renderCards() {
     const pastTag = ev.isPast ? '<span class="past-tag">📁 Data anterior</span>' : (ev.isToday ? '<span style="display:inline-block;margin-top:4px;padding:2px 8px;background:rgba(110,231,183,0.2);border-radius:4px;font-size:0.68rem;color:#6ee7b7;font-weight:700;">● HOJE</span>' : '');
     return `<div class="aula-card ${ev._hasConflict?'has-conflict':''} ${ev._hasOvertime?'has-overtime':''} ${ev.isPast?'is-past':''}" id="card-${evIdx}">
       <div class="card-header">
-        <div class="aula-code">${ev.aula}</div>
-        <div class="aula-name">${aulaName}</div>
-        <div class="sala">🏫 Turma: <strong>${ev.sala}</strong></div>
-        <div class="horario">🕐 ${mapHorarioLabel(ev.horarioRaw)}</div>
-        ${pastTag}
-        <div class="data-badge">📅 ${ev.data}</div>
+        <div class="card-header-left">
+          <div class="aula-code">${ev.aula}</div>
+          <div class="aula-name">${aulaName}</div>
+          ${pastTag}
+        </div>
+        <div class="card-header-right">
+          <div class="data-badge">📅 ${ev.data}</div>
+          <div class="sala">🏫 Turma: <strong>${ev.sala}</strong></div>
+          <div class="horario">🕐 ${mapHorarioLabel(ev.horarioRaw)}</div>
+        </div>
       </div>
       <div class="card-body">${alertHtml}${pessoasHtml}</div>
       <div class="card-footer">
