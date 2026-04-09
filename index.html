@@ -631,7 +631,17 @@ function applyFilters() {
   // Se algum filtro de data ativo ou nome, ignorar a ocultação de passados
   const hasActiveFilter = fData || fAula || fSala || fNome;
 
+  // Data mínima: só exibir escalas a partir de 13/04/2025
+  const MIN_DATA = new Date(2025, 3, 13); // mês 3 = abril (0-indexed)
+  function parseDataBR(d) {
+    const p = d.split('/');
+    return p.length === 3 ? new Date(+p[2], +p[1]-1, +p[0]) : null;
+  }
+
   filteredEvents = allEvents.filter(ev => {
+    // Excluir datas anteriores a 13/04/2025
+    const evDate = parseDataBR(ev.data);
+    if (evDate && evDate < MIN_DATA) return false;
     // Ocultar passados a menos que: showPast=true OU filtro ativo
     if (ev.isPast && !showPast && !hasActiveFilter) return false;
     if (fData && ev.data !== fData) return false;
