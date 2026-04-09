@@ -1064,34 +1064,80 @@ function rowsToText(rows) {
   return lines.join('\n');
 }
 
+// Encaixa auxiliares nos cards já criados pelos professores/monitores.
+// A correspondência é feita por data + turma (normalizada) + sobreposição de horário.
+function injectAuxiliares(auxRows) {
+  if (!allEvents.length || !auxRows.length) return;
+
+  const sample = auxRows[0] || {};
+  const colH = Object.keys(sample).find(k =>
+    k.toLowerCase().includes('coluna') || k.toLowerCase().includes('horário') || k.toLowerCase().includes('horario')
+  ) || 'Coluna1';
+  const colS = Object.keys(sample).find(k =>
+    k.toLowerCase().includes('sala') || k.toLowerCase().includes('turma')
+  ) || 'SALA NOME';
+
+  let encaixados = 0;
+  auxRows.forEach(r => {
+    if (!r.Nome || !r.Nome.trim() || !r.Data) return;
+
+    const rawH = fixMalformedHorario((r[colH] || '').trim());
+    const parsed = rawH.match(/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/);
+    if (!parsed) return;
+    const auxStart = parseTime(parsed[1]);
+    const auxEnd   = parseTime(parsed[2]);
+    const auxTurma = getTurmaKey((r[colS] || '').trim());
+    const auxData  = (r.Data || '').trim();
+
+    // Busca todos os cards que coincidem em data + turma + sobreposição de horário
+    const targets = allEvents.filter(ev => {
+      if (ev.data !== auxData) return false;
+      if (getTurmaKey(ev.sala) !== auxTurma) return false;
+      if (ev.horarioStart === null || ev.horarioEnd === null) return false;
+      // Sobreposição real: auxStart < ev.horarioEnd  E  auxEnd > ev.horarioStart
+      return auxStart < ev.horarioEnd && auxEnd > ev.horarioStart;
+    });
+
+    targets.forEach(ev => {
+      ev.equipe.push({ nome: r.Nome.trim(), funcao: (r.Funcao || r['Função'] || '').trim() });
+      encaixados++;
+    });
+  });
+
+  console.log('[AUX] Encaixados:', encaixados, 'entradas em cards existentes');
+
+  // Recalcula conflitos/overtime e re-renderiza
+  computeConflicts();
+  computeOvertime();
+  applyFilters();
+}
+
 function autoLoadCSV() {
   document.getElementById('loadedFileLabel').textContent = '🔄 Carregando planilhas...';
 
   Promise.allSettled(CSV_URLS.map(parseCsvUrl)).then(results => {
-    let allRows = [];
-    let erros = [];
+    const profRows = results[0]?.status === 'fulfilled' ? results[0].value : [];
+    const auxRows  = results[1]?.status === 'fulfilled' ? results[1].value : [];
 
-    results.forEach((r, i) => {
-      if (r.status === 'fulfilled' && r.value.length > 0) {
-        allRows = allRows.concat(r.value);
-      } else {
-        erros.push(CSV_URLS[i]);
-      }
-    });
-
-    if (allRows.length === 0) {
-      alert('Nenhuma planilha carregou com sucesso.\n\n' + erros.join('\n'));
+    if (profRows.length === 0 && auxRows.length === 0) {
+      alert('Nenhuma planilha carregou com sucesso.');
       return;
     }
 
-    if (erros.length > 0) {
-      console.warn('Planilha(s) não carregaram:', erros);
+    if (profRows.length === 0) {
+      console.warn('Planilha de professores não carregou:', CSV_URLS[0]);
+    }
+
+    // 1. Processa professores/monitores → monta todos os cards
+    processCSV(rowsToText(profRows));
+
+    // 2. Encaixa auxiliares nos cards criados (por sobreposição de data + turma + horário)
+    if (auxRows.length > 0) {
+      injectAuxiliares(auxRows);
     }
 
     document.getElementById('loadedFileLabel').textContent =
-      `✅ ${allRows.length} registros de ${results.filter(r => r.status === 'fulfilled').length} planilha(s)`;
-
-    processCSV(rowsToText(allRows));
+      `✅ ${profRows.length + auxRows.length} registros de ${results.filter(r => r.status === 'fulfilled').length} planilha(s)`;
   });
 }
 
