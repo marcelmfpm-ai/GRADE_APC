@@ -770,8 +770,6 @@ function renderCards() {
     const conflictCount = [...new Set(ev._conflicts||[])].length;
     const overtimeCount = [...new Set(ev._overtime||[])].length;
     let alertHtml = '';
-    if (conflictCount>0) alertHtml += `<div class="alert-bar alert-conflict">⚠️ ${conflictCount} pessoa(s) com conflito de horário</div>`;
-    if (overtimeCount>0) alertHtml += `<div class="alert-bar alert-overtime">⏱️ ${overtimeCount} pessoa(s) acima de 8h/dia</div>`;
     const funcaoGroups = {};
     ev.equipe.forEach(m => { const f=m.funcao.trim().toUpperCase(); if(!funcaoGroups[f]) funcaoGroups[f]=[]; funcaoGroups[f].push(m); });
     const pessoasHtml = Object.values(funcaoGroups).map(ps => ps.map(m => {
@@ -887,8 +885,6 @@ function exportCard(evIdx) {
       <div style="font-size:13px;color:#e2e8f0;font-weight:600;margin-top:5px;">🏫 Turma: ${ev.sala}</div>
       <div style="font-size:13px;color:#bfdbfe;margin-top:3px;font-weight:600;">🕐 ${mapHorarioLabel(ev.horarioRaw)}</div>
       <div style="font-size:12px;color:#bfdbfe;margin-top:2px;">📅 ${ev.data}</div>
-      ${ev._hasConflict?'<div style="margin-top:8px;padding:5px 10px;background:rgba(239,68,68,0.2);border:1px solid rgba(239,68,68,0.5);border-radius:5px;font-size:11px;color:#fca5a5;font-weight:700;">⚠️ Conflito de horário detectado</div>':''}
-      ${ev._hasOvertime?'<div style="margin-top:6px;padding:5px 10px;background:rgba(245,158,11,0.2);border:1px solid rgba(245,158,11,0.5);border-radius:5px;font-size:11px;color:#fde68a;font-weight:700;">⏱️ Pessoa(s) acima de 8h/dia</div>':''}
     </div>
     <div style="padding:14px 18px;background:#fff;">
       ${pessoasHtml}
@@ -1005,8 +1001,6 @@ function openCardModal(evIdx) {
   let html=`<div style="margin-bottom:12px;font-size:0.82rem;color:#64748b;padding:8px 12px;background:#f8fafc;border-radius:7px;border:1px solid #e2e8f0;">
     📅 ${ev.data} ${ev.isPast?'<span style="background:#fef9c3;color:#92400e;font-size:0.7rem;padding:1px 7px;border-radius:4px;font-weight:700;margin-left:4px;">📁 Data anterior</span>':''} &nbsp;|&nbsp; 🕐 <strong>${ev.horarioDisplay}</strong> &nbsp;|&nbsp; 👥 ${ev.equipe.length} escalados
   </div>`;
-  if(ev._hasConflict) html+=`<div class="alert-bar alert-conflict">⚠️ Conflito de horário detectado</div>`;
-  if(ev._hasOvertime) html+=`<div class="alert-bar alert-overtime">⏱️ Pessoa(s) acima de 8h/dia</div>`;
   html+=Object.values(funcaoGroups).map(ps=>ps.map(m=>{
     const isC=ev._conflicts&&ev._conflicts.includes(m.nome.toUpperCase());
     const isO=ev._overtime&&ev._overtime.includes(m.nome.toUpperCase());
