@@ -380,19 +380,13 @@ function processCSV(text) {
     const rawH = (r[colHorario] || '').trim();
     const hKey = getSlotKey(rawH);
     const salaKey = getTurmaKey((r[colSala]||'').trim());
+    const key = `${r.Data}||${hKey}||${salaKey}`;
 
-    // Se o horário cobre múltiplos slots, adiciona o auxiliar em cada slot separado
-    // para permitir mesclagem com os cards dos professores (que têm entradas por slot)
-    const slotKeys = hKey.includes('+') ? hKey.split('+') : [hKey];
-
-    slotKeys.forEach(sk => {
-      const key = `${r.Data}||${sk}||${salaKey}`;
-      if (!eventMap[key]) {
-        eventMap[key] = { data: r.Data.trim(), aula: r.Aula.trim(), sala: (r[colSala]||'').trim(), horarios: [], equipe: [] };
-      }
-      if (rawH && !eventMap[key].horarios.includes(rawH)) eventMap[key].horarios.push(rawH);
-      eventMap[key].equipe.push({ nome: r.Nome.trim(), funcao: (r.Funcao||r['Função']||'').trim() });
-    });
+    if (!eventMap[key]) {
+      eventMap[key] = { data: r.Data.trim(), aula: r.Aula.trim(), sala: (r[colSala]||'').trim(), horarios: [], equipe: [] };
+    }
+    if (rawH && !eventMap[key].horarios.includes(rawH)) eventMap[key].horarios.push(rawH);
+    eventMap[key].equipe.push({ nome: r.Nome.trim(), funcao: (r.Funcao||r['Função']||'').trim() });
   });
 
   allEvents = Object.values(eventMap).map(ev => {
@@ -593,8 +587,10 @@ function getSlotKey(raw) {
   if (!m) return normalized.trim().replace(/\s*-\s*/g, '-');
   const s = parseTime(m[1]), e = parseTime(m[2]);
   const tol = 40;
-  const slots = SLOTS_PADRAO.filter(sl => s <= sl.start + tol && e >= sl.end - tol);
-  return slots.length ? slots.map(sl => sl.start).join('+') : `${s}-${e}`;
+  // Usa apenas o PRIMEIRO slot coberto como chave, permitindo que entradas
+  // com horários diferentes (ex: 08:00-09:40 e 08:00-11:40) se mesclam no mesmo card
+  const firstSlot = SLOTS_PADRAO.find(sl => s <= sl.start + tol && e >= sl.end - tol);
+  return firstSlot ? String(firstSlot.start) : `${s}-${e}`;
 }
 function buildFilters() {
   const datas = [...new Set(allEvents.map(e => e.data))].sort((a,b) => parseDate(a)-parseDate(b));
