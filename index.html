@@ -632,7 +632,7 @@ function applyFilters() {
   const hasActiveFilter = fData || fAula || fSala || fNome;
 
   // Data mínima: só exibir escalas a partir de 13/04/2025
-  const MIN_DATA = new Date(2025, 3, 13); // mês 3 = abril (0-indexed)
+  const MIN_DATA = new Date(2026, 3, 13); // mês 3 = abril (0-indexed)
   function parseDataBR(d) {
     if (!d) return null;
     const p = d.trim().split('/');
