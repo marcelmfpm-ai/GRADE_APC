@@ -634,14 +634,20 @@ function applyFilters() {
   // Data mínima: só exibir escalas a partir de 13/04/2025
   const MIN_DATA = new Date(2025, 3, 13); // mês 3 = abril (0-indexed)
   function parseDataBR(d) {
-    const p = d.split('/');
-    return p.length === 3 ? new Date(+p[2], +p[1]-1, +p[0]) : null;
+    if (!d) return null;
+    const p = d.trim().split('/');
+    if (p.length === 3) return new Date(+p[2], +p[1]-1, +p[0]);
+    // Tenta formato YYYY-MM-DD
+    const p2 = d.trim().split('-');
+    if (p2.length === 3 && p2[0].length === 4) return new Date(+p2[0], +p2[1]-1, +p2[2]);
+    return null;
   }
+  if (allEvents.length) console.log('[FILTRO] Amostra de datas:', allEvents.slice(0,3).map(e=>e.data));
 
   filteredEvents = allEvents.filter(ev => {
     // Excluir datas anteriores a 13/04/2025
     const evDate = parseDataBR(ev.data);
-    if (evDate && evDate < MIN_DATA) return false;
+    if (!evDate || evDate < MIN_DATA) return false;
     // Ocultar passados a menos que: showPast=true OU filtro ativo
     if (ev.isPast && !showPast && !hasActiveFilter) return false;
     if (fData && ev.data !== fData) return false;
