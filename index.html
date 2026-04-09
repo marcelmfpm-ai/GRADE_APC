@@ -383,7 +383,7 @@ function processCSV(text) {
     const key = `${r.Data}||${hKey}||${salaKey}`;
 
     if (!eventMap[key]) {
-      eventMap[key] = { data: r.Data.trim(), aula: r.Aula.trim(), sala: (r[colSala]||'').trim(), horarios: [], equipe: [] };
+      eventMap[key] = { data: r.Data.trim(), aula: remapAulaCode(r.Aula.trim()), sala: (r[colSala]||'').trim(), horarios: [], equipe: [] };
     }
     if (rawH && !eventMap[key].horarios.includes(rawH)) eventMap[key].horarios.push(rawH);
     eventMap[key].equipe.push({ nome: r.Nome.trim(), funcao: (r.Funcao||r['Função']||'').trim() });
@@ -573,6 +573,15 @@ function computeOvertime() {
 // ===================== FILTERS =====================
 function getTurmaBase(sala) {
   return sala ? sala.split(' - ')[0].trim() : '';
+}
+// Remapeia códigos de aula: M2.4→M2.6, M2.5→M2.4, M2.6→M2.5 (preserva sufixo letra)
+function remapAulaCode(code) {
+  if (!code) return code;
+  const m = code.match(/^(M2\.[456])([A-Za-z]?)(.*)$/i);
+  if (!m) return code;
+  const map = { 'M2.4': 'M2.6', 'M2.5': 'M2.4', 'M2.6': 'M2.5' };
+  const remapped = map[m[1].toUpperCase()] || m[1];
+  return remapped + m[2] + m[3];
 }
 function getTurmaKey(sala) {
   const base = getTurmaBase(sala);
