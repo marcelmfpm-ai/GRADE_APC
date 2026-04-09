@@ -100,14 +100,22 @@
   .aula-card.has-conflict { border-color: #fca5a5; box-shadow: 0 0 0 2px rgba(239,68,68,0.15); }
   .aula-card.has-overtime { border-color: #fcd34d; }
 
-  .card-header { padding: 14px 16px; background: linear-gradient(135deg, #1e3a5f 0%, #2d5a8e 100%); border-bottom: 2px solid var(--accent-light); display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .card-header { padding: 14px 16px; background: linear-gradient(135deg, #1e3a5f 0%, #2d5a8e 100%); border-bottom: 2px solid var(--accent-light); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 12px; }
   .card-header-left { flex: 1; min-width: 0; }
   .card-header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; text-align: right; }
-  .card-header .aula-code { font-size: 1.15rem; font-weight: 800; color: #fbbf24; letter-spacing: 0.05em; }
-  .card-header .aula-name { font-size: 0.73rem; color: #93c5fd; margin-top: 2px; }
-  .card-header .data-badge { background: rgba(220,38,38,0.18); border: 1px solid rgba(220,38,38,0.6); border-radius: 6px; padding: 3px 9px; font-size: 0.9rem; color: #ff6b6b; font-weight: 800; white-space: nowrap; }
-  .card-header .sala { font-size: 1rem; color: #ff6b6b; font-weight: 700; }
-  .card-header .horario { font-size: 1rem; color: #ff6b6b; font-weight: 700; white-space: nowrap; }
+  .card-header .aula-code { font-size: 1.15rem; font-weight: 800; letter-spacing: 0.05em; }
+  .card-header .aula-name { font-size: 0.73rem; margin-top: 2px; }
+  .card-header .data-badge { border-radius: 6px; padding: 3px 9px; font-size: 0.9rem; font-weight: 800; white-space: nowrap; }
+  .card-header .sala { font-size: 1rem; font-weight: 700; }
+  .card-header .horario { font-size: 1rem; font-weight: 700; white-space: nowrap; }
+  /* Professores/Monitores: tudo vermelho */
+  .card-header-prof .aula-code, .card-header-prof .aula-name,
+  .card-header-prof .data-badge, .card-header-prof .sala, .card-header-prof .horario { color: #ff2222; }
+  .card-header-prof .data-badge { background: rgba(220,38,38,0.18); border: 1px solid rgba(220,38,38,0.5); }
+  /* Auxiliares: tudo amarelo */
+  .card-header-aux .aula-code, .card-header-aux .aula-name,
+  .card-header-aux .data-badge, .card-header-aux .sala, .card-header-aux .horario { color: #fbbf24; }
+  .card-header-aux .data-badge { background: rgba(251,191,36,0.15); border: 1px solid rgba(251,191,36,0.5); }
   .card-header .past-tag { display: inline-block; margin-top: 4px; padding: 2px 8px; background: rgba(255,255,255,0.15); border-radius: 4px; font-size: 0.68rem; color: #cbd5e1; font-weight: 700; }
 
   .card-body { padding: 12px 16px; }
@@ -359,6 +367,15 @@ function initTodayLabel() {
 initTodayLabel();
 
 // ===================== CSV PROCESSING =====================
+function parseDataBR(d) {
+  if (!d) return null;
+  const p = d.trim().split('/');
+  if (p.length === 3) return new Date(+p[2], +p[1]-1, +p[0]);
+  const p2 = d.trim().split('-');
+  if (p2.length === 3 && p2[0].length === 4) return new Date(+p2[0], +p2[1]-1, +p2[2]);
+  return null;
+}
+
 function processCSV(text) {
   const parsed = Papa.parse(text.trim(), {
     delimiter: ';', skipEmptyLines: true, header: true,
@@ -492,6 +509,8 @@ const SLOTS_PADRAO = [
 function fixMalformedHorario(raw) {
   if (!raw) return raw;
   let s = raw.replace(/–/g, '-');
+  // Fix pipe separator "08:00|10:00" → "08:00-10:00"
+  s = s.replace(/(\d{1,2}:\d{2})\s*\|\s*(\d{1,2}:\d{2})/, '$1-$2');
   // Fix "13:5017:30" → "13:50-17:30" (two times concatenated without separator)
   if (!/\d:\d{2}\s*-\s*\d/.test(s)) {
     s = s.replace(/(\d{1,2}:\d{2})(\d{1,2}:\d{2})/, '$1-$2');
@@ -631,17 +650,8 @@ function applyFilters() {
   // Se algum filtro de data ativo ou nome, ignorar a ocultação de passados
   const hasActiveFilter = fData || fAula || fSala || fNome;
 
-  // Data mínima: só exibir escalas a partir de 13/04/2025
+  // Data mínima: só exibir escalas a partir de 13/04/2026
   const MIN_DATA = new Date(2026, 3, 13); // mês 3 = abril (0-indexed)
-  function parseDataBR(d) {
-    if (!d) return null;
-    const p = d.trim().split('/');
-    if (p.length === 3) return new Date(+p[2], +p[1]-1, +p[0]);
-    // Tenta formato YYYY-MM-DD
-    const p2 = d.trim().split('-');
-    if (p2.length === 3 && p2[0].length === 4) return new Date(+p2[0], +p2[1]-1, +p2[2]);
-    return null;
-  }
   if (allEvents.length) console.log('[FILTRO] Amostra de datas:', allEvents.slice(0,3).map(e=>e.data));
 
   filteredEvents = allEvents.filter(ev => {
@@ -778,7 +788,8 @@ function renderCards() {
     }).join('')).join('');
     const pastTag = ev.isPast ? '<span class="past-tag">📁 Data anterior</span>' : (ev.isToday ? '<span style="display:inline-block;margin-top:4px;padding:2px 8px;background:rgba(110,231,183,0.2);border-radius:4px;font-size:0.68rem;color:#6ee7b7;font-weight:700;">● HOJE</span>' : '');
     return `<div class="aula-card ${ev._hasConflict?'has-conflict':''} ${ev._hasOvertime?'has-overtime':''} ${ev.isPast?'is-past':''}" id="card-${evIdx}">
-      <div class="card-header">
+      <div class="card-header ${ev.isAux ? 'card-header-aux' : 'card-header-prof'}">
+        <div style="width:100%;text-align:center;font-size:1rem;font-weight:900;letter-spacing:0.08em;margin-bottom:6px;text-shadow:0 1px 4px rgba(0,0,0,0.4);color:${ev.isAux ? '#fbbf24' : '#ff2222'};">${ev.isAux ? 'AUXILIARES' : 'PROFESSORES / MONITORES'}</div>
         <div class="card-header-left">
           <div class="aula-code">${ev.aula}</div>
           <div class="aula-name">${aulaName}</div>
@@ -1089,10 +1100,9 @@ function rowsToText(rows) {
   return lines.join('\n');
 }
 
-// Encaixa auxiliares nos cards já criados pelos professores/monitores.
-// A correspondência é feita por data + turma (normalizada) + sobreposição de horário.
-function injectAuxiliares(auxRows) {
-  if (!allEvents.length || !auxRows.length) return;
+// Processa auxiliares como cards próprios, adicionados ao allEvents.
+function processAuxRows(auxRows) {
+  if (!auxRows.length) return;
 
   const sample = auxRows[0] || {};
   const colH = Object.keys(sample).find(k =>
@@ -1102,38 +1112,52 @@ function injectAuxiliares(auxRows) {
     k.toLowerCase().includes('sala') || k.toLowerCase().includes('turma')
   ) || 'SALA NOME';
 
-  let encaixados = 0;
+  const eventMap = {};
   auxRows.forEach(r => {
     if (!r.Nome || !r.Nome.trim() || !r.Data) return;
+    const rawH    = fixMalformedHorario((r[colH] || '').trim());
+    const hKey    = getSlotKey(rawH);
+    const salaVal = (r[colS] || '').trim();
+    const salaKey = getTurmaKey(salaVal);
+    const key     = `AUX||${r.Data.trim()}||${hKey}||${salaKey}`;
 
-    const rawH = fixMalformedHorario((r[colH] || '').trim());
-    const parsed = rawH.match(/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/);
-    if (!parsed) return;
-    const auxStart = parseTime(parsed[1]);
-    const auxEnd   = parseTime(parsed[2]);
-    const auxTurma = getTurmaKey((r[colS] || '').trim());
-    const auxData  = (r.Data || '').trim();
-
-    // Busca todos os cards que coincidem em data + turma + sobreposição de horário
-    const targets = allEvents.filter(ev => {
-      if (ev.data !== auxData) return false;
-      if (getTurmaKey(ev.sala) !== auxTurma) return false;
-      if (ev.horarioStart === null || ev.horarioEnd === null) return false;
-      // Sobreposição real: auxStart < ev.horarioEnd  E  auxEnd > ev.horarioStart
-      return auxStart < ev.horarioEnd && auxEnd > ev.horarioStart;
-    });
-
-    targets.forEach(ev => {
-      ev.equipe.push({ nome: r.Nome.trim(), funcao: (r.Funcao || r['Função'] || '').trim() });
-      encaixados++;
-    });
+    if (!eventMap[key]) {
+      eventMap[key] = {
+        data: r.Data.trim(),
+        aula: r.Aula ? remapAulaCode(r.Aula.trim()) : '',
+        sala: salaVal,
+        horarios: [],
+        equipe: [],
+        isAux: true
+      };
+    }
+    if (rawH && !eventMap[key].horarios.includes(rawH)) eventMap[key].horarios.push(rawH);
+    eventMap[key].equipe.push({ nome: r.Nome.trim(), funcao: (r.Funcao || r['Função'] || '').trim() });
   });
 
-  console.log('[AUX] Encaixados:', encaixados, 'entradas em cards existentes');
+  const auxEvents = Object.values(eventMap).map(ev => {
+    const { start, end } = resolveHorario(ev.horarios, ev.aula);
+    return {
+      ...ev,
+      horarioDisplay: buildHorarioDisplay(start, end),
+      horarioRaw: ev.horarios[0] || '',
+      horarioStart: start,
+      horarioEnd: end,
+      durationMin: (start !== null && end !== null) ? end - start : 0,
+      isPast: isDatePast(ev.data),
+      isToday: isDateToday(ev.data)
+    };
+  });
 
-  // Recalcula conflitos/overtime e re-renderiza
+  allEvents = [...allEvents, ...auxEvents];
+  console.log('[AUX] Cards de auxiliares adicionados:', auxEvents.length);
+
   computeConflicts();
   computeOvertime();
+  buildFilters();
+  buildStats();
+  buildAlerts();
+  updatePastBanner();
   applyFilters();
 }
 
@@ -1156,9 +1180,9 @@ function autoLoadCSV() {
     // 1. Processa professores/monitores → monta todos os cards
     processCSV(rowsToText(profRows));
 
-    // 2. Encaixa auxiliares nos cards criados (por sobreposição de data + turma + horário)
+    // 2. Auxiliares como cards próprios (adicionados ao allEvents)
     if (auxRows.length > 0) {
-      injectAuxiliares(auxRows);
+      processAuxRows(auxRows);
     }
 
     document.getElementById('loadedFileLabel').textContent =
