@@ -797,7 +797,7 @@ function renderCards() {
         <div class="card-header-right">
           <div class="data-badge">📅 ${ev.data}</div>
           <div class="sala">🏫 Turma: <strong>${ev.sala}</strong></div>
-          ${ev._horariosM26 ? ev._horariosM26.map(h => renderHorarioLines(h)).join('') : renderHorarioLines(ev.horarioRaw)}
+          ${ev._primeiroSlotM36 ? renderHorarioLines(ev._primeiroSlotM36) : ev._horariosM26 ? ev._horariosM26.map(h => renderHorarioLines(h)).join('') : renderHorarioLines(ev.horarioRaw)}
         </div>
       </div>
       <div class="card-body">${alertHtml}${pessoasHtml}</div>
@@ -1157,8 +1157,11 @@ function processAuxRows(auxRows) {
 
   const auxEvents = Object.values(eventMap).map(ev => {
     const isM26 = ev.aula && ev.aula.toUpperCase().startsWith('M2.6');
+    const isM36 = ev.aula && ev.aula.toUpperCase().startsWith('M3.6');
     const horariosFinais = isM26 ? normalizarHorarioM26(ev.horarios) : ev.horarios;
     const { start, end } = resolveHorario(horariosFinais, ev.aula);
+    // M3.6: apenas o primeiro slot padrão coberto
+    const primeiroSlotM36 = isM36 ? (normalizarHorarioM26(ev.horarios)[0] || ev.horarios[0] || '') : null;
     return {
       ...ev,
       horarioDisplay: buildHorarioDisplay(start, end),
@@ -1168,7 +1171,8 @@ function processAuxRows(auxRows) {
       durationMin: (start !== null && end !== null) ? end - start : 0,
       isPast: isDatePast(ev.data),
       isToday: isDateToday(ev.data),
-      _horariosM26: isM26 ? horariosFinais : null
+      _horariosM26: isM26 ? horariosFinais : null,
+      _primeiroSlotM36: primeiroSlotM36
     };
   });
 
