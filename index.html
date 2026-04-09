@@ -798,7 +798,7 @@ function renderCards() {
         <div class="card-header-right">
           <div class="data-badge">📅 ${ev.data}</div>
           <div class="sala">🏫 Turma: <strong>${ev.sala}</strong></div>
-          ${renderHorarioLines(ev.horarioRaw)}
+          ${ev._horariosM26 ? ev._horariosM26.map(h => renderHorarioLines(h)).join('') : renderHorarioLines(ev.horarioRaw)}
         </div>
       </div>
       <div class="card-body">${alertHtml}${pessoasHtml}</div>
@@ -1135,17 +1135,41 @@ function processAuxRows(auxRows) {
     eventMap[key].equipe.push({ nome: r.Nome.trim(), funcao: (r.Funcao || r['Função'] || '').trim() });
   });
 
+  // Para M2.6, normaliza os horários brutos para os slots padrão cobertos
+  function normalizarHorarioM26(horarios) {
+    const tol = 30;
+    const todosSlots = new Set();
+    horarios.forEach(h => {
+      const m = h.match(/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/);
+      if (!m) return;
+      const s = parseTime(m[1]), e = parseTime(m[2]);
+      SLOTS_PADRAO.forEach(sl => {
+        if (s <= sl.start + tol && e >= sl.end - tol) todosSlots.add(sl.start);
+      });
+    });
+    if (todosSlots.size === 0) return horarios;
+    const sorted = [...todosSlots].sort((a, b) => a - b);
+    // Retorna cada slot padrão como string de horário individual
+    return sorted.map(start => {
+      const sl = SLOTS_PADRAO.find(s => s.start === start);
+      return `${formatMin(sl.start)}-${formatMin(sl.end)}`;
+    });
+  }
+
   const auxEvents = Object.values(eventMap).map(ev => {
-    const { start, end } = resolveHorario(ev.horarios, ev.aula);
+    const isM26 = ev.aula && ev.aula.toUpperCase().startsWith('M2.6');
+    const horariosFinais = isM26 ? normalizarHorarioM26(ev.horarios) : ev.horarios;
+    const { start, end } = resolveHorario(horariosFinais, ev.aula);
     return {
       ...ev,
       horarioDisplay: buildHorarioDisplay(start, end),
-      horarioRaw: ev.horarios[0] || '',
+      horarioRaw: horariosFinais[0] || '',
       horarioStart: start,
       horarioEnd: end,
       durationMin: (start !== null && end !== null) ? end - start : 0,
       isPast: isDatePast(ev.data),
-      isToday: isDateToday(ev.data)
+      isToday: isDateToday(ev.data),
+      _horariosM26: isM26 ? horariosFinais : null
     };
   });
 
